@@ -13,13 +13,19 @@ from amanleek_validator.bootstrap import build_container
 from amanleek_validator.ui.batch_page import render_batch_page
 from amanleek_validator.ui.guide_page import render_guide_page
 from amanleek_validator.ui.single_file_page import render_single_file_page
+from amanleek_validator.ui.theme import apply_theme, render_sidebar_brand
 
 
 APP_TITLE = "Amanleek Utilization File Validator"
 APP_ROOT = Path(__file__).resolve().parent
 
-st.set_page_config(page_title=APP_TITLE, page_icon="✅", layout="wide")
-st.title(APP_TITLE)
+st.set_page_config(
+    page_title=APP_TITLE,
+    page_icon="✅",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+apply_theme()
 
 try:
     container = build_container(APP_ROOT)
@@ -28,7 +34,11 @@ except RuntimeError as exc:
     st.stop()
 
 with st.sidebar:
-    st.header("Navigation")
+    render_sidebar_brand()
+    st.markdown(
+        '<div class="sidebar-label">Workspace</div>',
+        unsafe_allow_html=True,
+    )
     selected_page = st.radio(
         "Choose a page",
         (
@@ -39,9 +49,14 @@ with st.sidebar:
         label_visibility="collapsed",
     )
     st.divider()
-    st.caption(
-        "Uploaded and generated files are processed in memory and are not "
-        "automatically stored on the server."
+    st.markdown(
+        """
+        <div class="sidebar-security">
+            🔒 <strong>In-memory processing</strong><br>
+            Files are not automatically stored on the server.
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
 if selected_page == "Guide":

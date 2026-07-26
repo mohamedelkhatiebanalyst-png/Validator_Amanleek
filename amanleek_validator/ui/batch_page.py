@@ -13,27 +13,37 @@ from amanleek_validator.domain.models import (
     BatchStatus,
     UploadedWorkbook,
 )
+from amanleek_validator.ui.theme import (
+    render_page_header,
+    render_privacy_note,
+    render_section_heading,
+)
 
 
 MAX_BATCH_FILES = 50
 
 
 def render_batch_page(service: BatchComparisonService) -> None:
-    st.subheader("Batch structure check")
-    st.caption(
-        "Upload multiple Excel workbooks and compare their sheet structure and "
-        "exact column order against the first readable workbook."
+    render_page_header(
+        "Batch structure check",
+        "Compare files at a glance",
+        "Compare worksheet structure and exact column order across multiple "
+        "workbooks using the first readable file as the reference.",
+    )
+    render_section_heading(
+        "Upload workbooks",
+        f"Select 2–{MAX_BATCH_FILES} Excel .xlsx files for comparison.",
     )
 
     uploaded_files = st.file_uploader(
-        "Upload workbooks for batch comparison",
+        "Choose Excel workbooks",
         type=["xlsx"],
         accept_multiple_files=True,
         key="admin_batch_uploads",
         help=f"Upload up to {MAX_BATCH_FILES} Excel workbooks.",
     )
     if not uploaded_files:
-        st.info("Upload at least two `.xlsx` workbooks to compare their structures.")
+        render_privacy_note()
         return
     if len(uploaded_files) > MAX_BATCH_FILES:
         st.error(
@@ -44,6 +54,10 @@ def render_batch_page(service: BatchComparisonService) -> None:
     if len(uploaded_files) == 1:
         st.warning("Upload at least one more workbook for a meaningful comparison.")
 
+    total_size_mb = sum(len(upload.getvalue()) for upload in uploaded_files) / (
+        1024 * 1024
+    )
+    st.success(f"{len(uploaded_files)} file(s) ready · {total_size_mb:.2f} MB total")
     uploads = tuple(
         UploadedWorkbook(upload.name, upload.getvalue()) for upload in uploaded_files
     )

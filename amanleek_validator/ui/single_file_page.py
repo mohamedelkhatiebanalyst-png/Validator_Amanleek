@@ -14,6 +14,11 @@ from amanleek_validator.application.single_file import (
 )
 from amanleek_validator.domain.models import RowValidation, WorkbookAssessment
 from amanleek_validator.domain.validation import issues_dataframe
+from amanleek_validator.ui.theme import (
+    render_page_header,
+    render_privacy_note,
+    render_section_heading,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -25,24 +30,32 @@ TECHSHEET_NAME_KEY = "single_file_techsheet_name"
 
 
 def render_single_file_page(service: SingleFileValidationService) -> None:
-    st.subheader("Single-file validation")
-    st.caption(
-        "Validate the client-utilization workbook before uploading it to Zoho WorkDrive."
+    render_page_header(
+        "Single-file validation",
+        "Inspect, repair, and export",
+        "Validate one client-utilization workbook and resolve safe structural "
+        "issues before uploading it to Zoho WorkDrive.",
     )
     _render_template_download(service)
 
+    render_section_heading(
+        "Upload workbook",
+        "Accepted format: Excel .xlsx. Maximum file size: 100 MB.",
+    )
     uploaded_file = st.file_uploader(
-        "Upload the utilization workbook",
+        "Choose an Excel workbook",
         type=["xlsx"],
         key="single_file_upload",
     )
     if uploaded_file is None:
-        st.info("Upload one .xlsx file to begin validation.")
+        render_privacy_note()
         return
 
     original_bytes = uploaded_file.getvalue()
     _reset_state_for_new_upload(uploaded_file.name, original_bytes)
     working_bytes = st.session_state.get(REPAIRED_BYTES_KEY, original_bytes)
+    file_size_mb = len(original_bytes) / (1024 * 1024)
+    st.success(f"Ready: {uploaded_file.name} · {file_size_mb:.2f} MB")
     techsheet_name = st.text_input(
         "Techsheet name",
         placeholder="Enter the Techsheet name",
@@ -50,7 +63,7 @@ def render_single_file_page(service: SingleFileValidationService) -> None:
         key=TECHSHEET_NAME_KEY,
     ).strip()
     if not techsheet_name:
-        st.info("Enter the Techsheet name to continue validation.")
+        st.info("Enter the Techsheet name to continue.")
         return
 
     try:
@@ -92,16 +105,22 @@ def render_single_file_page(service: SingleFileValidationService) -> None:
 
 
 def _render_template_download(service: SingleFileValidationService) -> None:
-    st.download_button(
-        "All_in_one_2026",
-        data=service.template(),
-        file_name="All_in_one_2026.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        icon=":material/download:",
-    )
-    st.caption(
-        "Download an empty sheet1 template containing all approved columns in exact order."
-    )
+    with st.expander("Need a clean template?"):
+        template_column, action_column = st.columns([3, 1])
+        with template_column:
+            st.markdown("**All_in_one_2026.xlsx**")
+            st.caption(
+                "An empty sheet1 template with every approved column in exact order."
+            )
+        with action_column:
+            st.download_button(
+                "Download template",
+                data=service.template(),
+                file_name="All_in_one_2026.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                icon=":material/download:",
+                width="stretch",
+            )
 
 
 def _reset_state_for_new_upload(file_name: str, content: bytes) -> None:
@@ -258,6 +277,7 @@ def _render_validated(
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         type="primary",
         icon=":material/download:",
+        width="stretch",
     )
     download_columns[1].download_button(
         "Download validated CSV",
@@ -265,6 +285,7 @@ def _render_validated(
         file_name=f"{base_name}_validated.csv",
         mime="text/csv",
         icon=":material/download:",
+        width="stretch",
     )
     st.caption(
         "Files are generated in memory and are saved only when you click a "
