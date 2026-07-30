@@ -89,19 +89,10 @@ def repairable_missing_columns(
     if len(non_blank) != len(set(non_blank)):
         return ()
 
-    repairable = set(schema.repairable_null_columns)
-    non_repairable = [
-        column
-        for column in schema.required_columns
-        if column not in repairable and column not in schema.optional_columns
-    ]
-    if not all(normalized_headers.count(column) == 1 for column in non_repairable):
-        return ()
-
     return tuple(
         column
-        for column in schema.repairable_null_columns
-        if column not in normalized_headers
+        for column in schema.required_columns
+        if column not in schema.optional_columns and column not in normalized_headers
     )
 
 

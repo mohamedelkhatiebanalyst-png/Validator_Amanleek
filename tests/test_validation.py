@@ -8,7 +8,11 @@ import pandas as pd
 
 from amanleek_validator.application.single_file import SingleFileValidationService
 from amanleek_validator.domain.schema import ValidationSchema
-from amanleek_validator.domain.validation import validate_rows, validate_schema
+from amanleek_validator.domain.validation import (
+    repairable_missing_columns,
+    validate_rows,
+    validate_schema,
+)
 from amanleek_validator.infrastructure.excel import OpenpyxlWorkbookAdapter
 
 
@@ -81,6 +85,44 @@ class ValidationTests(unittest.TestCase):
             ["July Techsheet", "July Techsheet"],
             exported["TECSHEET NAME"].tolist(),
         )
+
+    def test_any_missing_required_column_is_pending_and_repairable(self) -> None:
+        adapter = OpenpyxlWorkbookAdapter()
+        service = SingleFileValidationService(self.schema, adapter)
+        missing_column = "CONTRACT #"
+        row = {
+            column: "value"
+            for column in self.schema.approved_columns
+            if column != missing_column
+        }
+        content = adapter.write_excel(pd.DataFrame([row]), self.schema.expected_sheet)
+
+        assessment = service.assess(content)
+        repaired = service.add_missing_columns(
+            content,
+            assessment.repairs.missing_columns,
+        )
+        repaired_data = adapter.read_sheet(repaired.content, self.schema.expected_sheet)
+
+        self.assertTrue(assessment.is_pending)
+        self.assertEqual((missing_column,), assessment.repairs.missing_columns)
+        self.assertEqual(
+            list(self.schema.approved_columns),
+            repaired_data.columns.tolist(),
+        )
+        self.assertTrue(pd.isna(repaired_data.at[0, missing_column]))
+        self.assertEqual("value", repaired_data.at[0, "INDIVIDUAL NAME"])
+
+    def test_duplicate_headers_block_automatic_missing_column_repair(self) -> None:
+        headers = tuple(
+            column
+            for column in self.schema.approved_columns
+            if column != "CONTRACT #"
+        ) + ("INDIVIDUAL#",)
+
+        missing = repairable_missing_columns(headers, self.schema)
+
+        self.assertEqual((), missing)
 
 
 class WorkbookSafetyTests(unittest.TestCase):

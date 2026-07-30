@@ -42,7 +42,11 @@ class SingleFileValidationService:
         )
         headers = expected_sheet.headers if expected_sheet else ()
 
-        schema_check = validate_schema(headers, self.schema) if headers else None
+        schema_check = (
+            validate_schema(headers, self.schema)
+            if expected_sheet is not None
+            else None
+        )
         errors = list(workbook_errors)
         warnings: list[str] = []
         extra_columns: tuple[str, ...] = ()
@@ -55,7 +59,7 @@ class SingleFileValidationService:
             rename_from=rename_from,
             missing_columns=(
                 repairable_missing_columns(headers, self.schema)
-                if headers and not workbook_errors
+                if expected_sheet is not None and not workbook_errors
                 else ()
             ),
             extra_columns=extra_columns if not workbook_errors else (),
@@ -96,9 +100,9 @@ class SingleFileValidationService:
         content: bytes,
         columns: tuple[str, ...],
     ) -> RepairResult:
-        allowed = set(self.schema.repairable_null_columns)
+        allowed = set(self.schema.required_columns) - set(self.schema.optional_columns)
         if any(column not in allowed for column in columns):
-            raise ValueError("One or more requested columns are not safely repairable")
+            raise ValueError("One or more requested columns are not required columns")
         data = self._read_normalized(content)
         for column in columns:
             if column not in data.columns:

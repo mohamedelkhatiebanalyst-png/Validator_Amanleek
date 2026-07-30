@@ -9,7 +9,6 @@ class ValidationSchema:
     expected_sheet: str
     required_columns: tuple[str, ...]
     optional_columns: frozenset[str]
-    repairable_null_columns: tuple[str, ...]
     text_columns: frozenset[str]
     duplicate_key: tuple[str, ...]
     row_issue_columns: frozenset[str]
@@ -22,7 +21,6 @@ class ValidationSchema:
             expected_sheet=str(values["sheet_name"]),
             required_columns=tuple(values["required_columns_in_order"]),
             optional_columns=frozenset(values.get("optional_columns", ())),
-            repairable_null_columns=tuple(values.get("repairable_null_columns", ())),
             text_columns=frozenset(values.get("text_columns", ())),
             duplicate_key=tuple(values["duplicate_key"]),
             row_issue_columns=frozenset(values.get("row_issue_columns", ())),
@@ -44,13 +42,11 @@ class ValidationSchema:
 
         approved = set(self.required_columns)
         unknown_optional = self.optional_columns - approved
-        unknown_repairable = set(self.repairable_null_columns) - approved
         unknown_text = self.text_columns - approved
         unknown_duplicate_keys = set(self.duplicate_key) - approved
         unknown_row_issue = self.row_issue_columns - approved
         unknown = (
             unknown_optional
-            | unknown_repairable
             | unknown_text
             | unknown_duplicate_keys
             | unknown_row_issue

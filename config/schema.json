@@ -43,14 +43,6 @@
     "DRC CODE"
   ],
   "optional_columns": [],
-  "repairable_null_columns": [
-    "VALIDATION FLAG",
-    "STATUS TYPE",
-    "STATUS REASON DESCRIPTION",
-    "RELATED DRC",
-    "EXCEPTION_AMT",
-    "DRC CODE"
-  ],
   "text_columns": [
     "STAFF#",
     "VISA/SOAP#",

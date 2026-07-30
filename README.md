@@ -64,9 +64,9 @@ has the same worksheet structure and does not combine or modify files.
 - Offers a pending repair button when a single worksheet needs to be renamed to `sheet1`.
 - Requires the header on row 1.
 - Requires all 40 approved columns in their exact relative order.
-- If any repairable required column is missing (`VALIDATION FLAG`, `STATUS TYPE`, `STATUS REASON DESCRIPTION`, `RELATED DRC`, `EXCEPTION_AMT`, or `DRC CODE`), offers a button to add it in the approved position with null values when every other required column is present.
+- If any required column is missing, keeps the workbook pending and offers a button to add every missing required column in its approved position with null values.
 - Trims leading and trailing spaces from headers.
-- Rejects other missing, duplicated, renamed, or reordered required columns.
+- Rejects duplicated required headers because they must be resolved manually before missing columns can be added safely. Renamed headers remain flagged as extras while their missing approved counterparts can be added with null values.
 - Keeps safely renameable or reorderable files in a pending state.
 - Warns about columns outside the approved schema.
 - Offers a **Delete extra columns** button that removes only unapproved columns and preserves approved data.
