@@ -28,7 +28,10 @@ class BatchComparisonService:
         ] = []
         for upload in uploads:
             try:
-                structure = self.workbooks.inspect(upload.content)
+                if upload.name.lower().endswith(".csv"):
+                    structure = self.workbooks.inspect_csv(upload.content)
+                else:
+                    structure = self.workbooks.inspect(upload.content)
                 inspections.append((upload, structure, None))
             except (OSError, ValueError, KeyError) as exc:
                 inspections.append((upload, None, str(exc)))

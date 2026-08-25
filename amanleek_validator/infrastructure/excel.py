@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from io import BytesIO
+import csv
+from io import BytesIO, StringIO
 from zipfile import BadZipFile, ZipFile
 
 import pandas as pd
@@ -28,6 +29,29 @@ class OpenpyxlWorkbookAdapter:
             return tuple(self._sheet_structure(sheet) for sheet in workbook.worksheets)
         finally:
             workbook.close()
+
+    def inspect_csv(self, content: bytes) -> WorkbookStructure:
+        if not content:
+            raise ValueError("The CSV file is empty")
+        if len(content) > MAX_WORKBOOK_BYTES:
+            raise ValueError(
+                f"The CSV file exceeds the {MAX_WORKBOOK_BYTES // (1024 * 1024)} MB "
+                "size limit"
+            )
+        try:
+            text = content.decode("utf-8-sig")
+        except UnicodeDecodeError as exc:
+            raise ValueError("The CSV file must use UTF-8 encoding") from exc
+        try:
+            first_row = next(csv.reader(StringIO(text)))
+        except StopIteration as exc:
+            raise ValueError("The CSV file has no header row") from exc
+        except csv.Error as exc:
+            raise ValueError(f"The CSV header could not be parsed: {exc}") from exc
+        headers = tuple(normalize_header(column) for column in first_row)
+        if not headers:
+            raise ValueError("The CSV file has no columns")
+        return (SheetStructure("sheet1", headers),)
 
     def read_sheet(self, content: bytes, sheet_name: str) -> pd.DataFrame:
         self._validate_workbook_archive(content)

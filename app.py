@@ -11,8 +11,11 @@ import streamlit as st
 
 from amanleek_validator.bootstrap import build_container
 from amanleek_validator.ui.batch_page import render_batch_page
+from amanleek_validator.ui.batch_validation_page import render_batch_validation_page
+from amanleek_validator.ui.csv_converter_page import render_csv_converter_page
 from amanleek_validator.ui.guide_page import render_guide_page
 from amanleek_validator.ui.single_file_page import render_single_file_page
+from amanleek_validator.ui.tpa_ingestion_page import render_tpa_ingestion_page
 from amanleek_validator.ui.theme import apply_theme, render_sidebar_brand
 
 
@@ -45,6 +48,9 @@ with st.sidebar:
             "Guide",
             "Single-file validation",
             "Batch check",
+            "Batch validation",
+            "CSV to XLSX",
+            "Healthcare data ingestion",
         ),
         label_visibility="collapsed",
     )
@@ -63,5 +69,11 @@ if selected_page == "Guide":
     render_guide_page()
 elif selected_page == "Single-file validation":
     render_single_file_page(container.single_files)
-else:
+elif selected_page == "Batch check":
     render_batch_page(container.batches)
+elif selected_page == "Batch validation":
+    render_batch_validation_page(container.batch_validation)
+elif selected_page == "CSV to XLSX":
+    render_csv_converter_page(container.csv_conversion)
+else:
+    render_tpa_ingestion_page()

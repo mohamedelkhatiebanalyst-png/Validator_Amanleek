@@ -42,6 +42,36 @@ class BatchComparisonTests(unittest.TestCase):
         self.assertFalse(comparison.all_match)
         self.assertEqual(BatchStatus.DIFFERENT, comparison.entries[1].status)
 
+    def test_matching_csv_files_are_supported(self) -> None:
+        uploads = (
+            UploadedWorkbook("first.csv", b"A,B\n1,2\n"),
+            UploadedWorkbook("second.csv", b"A,B\n3,4\n"),
+        )
+
+        comparison = self.service.compare(uploads)
+
+        self.assertTrue(comparison.all_match)
+
+    def test_csv_matches_canonical_single_sheet_workbook(self) -> None:
+        uploads = (
+            UploadedWorkbook("reference.xlsx", self.workbook(["A", "B"], "x")),
+            UploadedWorkbook("data.csv", b"A,B\n1,2\n"),
+        )
+
+        comparison = self.service.compare(uploads)
+
+        self.assertTrue(comparison.all_match)
+
+    def test_invalid_utf8_csv_is_unreadable(self) -> None:
+        uploads = (
+            UploadedWorkbook("reference.csv", b"A,B\n1,2\n"),
+            UploadedWorkbook("invalid.csv", b"A,B\n\xff,2\n"),
+        )
+
+        comparison = self.service.compare(uploads)
+
+        self.assertEqual(BatchStatus.UNREADABLE, comparison.entries[1].status)
+
 
 if __name__ == "__main__":
     unittest.main()

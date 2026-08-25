@@ -34,6 +34,7 @@ class ValidationTests(unittest.TestCase):
             {
                 "INDIVIDUAL#": "123",
                 "DATE OF BIRTH": "1990",
+                "CLAIM DATE": "2026-08-20 00:00:00",
                 "PROVIDER": "",
                 "CONTRACT #": "",
             }
@@ -84,6 +85,40 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(
             ["July Techsheet", "July Techsheet"],
             exported["TECSHEET NAME"].tolist(),
+        )
+
+    def test_claim_dates_are_validated_and_standardized(self) -> None:
+        rows = []
+        for claim_date in (
+            "2026/08/20 14:30:45.123456",
+            "August 21, 2026 01:02:03",
+            "32/08/2026",
+        ):
+            row = {column: "value" for column in self.schema.approved_columns}
+            row.update({
+                "INDIVIDUAL#": "123",
+                "DATE OF BIRTH": "1990",
+                "CLAIM DATE": claim_date,
+            })
+            rows.append(row)
+
+        result = validate_rows(pd.DataFrame(rows), self.schema)
+
+        self.assertEqual(
+            "2026-08-20 14:30:45",
+            result.cleaned_data.at[0, "CLAIM DATE"],
+        )
+        self.assertEqual(
+            "2026-08-21 01:02:03",
+            result.cleaned_data.at[1, "CLAIM DATE"],
+        )
+        self.assertEqual("32/08/2026", result.cleaned_data.at[2, "CLAIM DATE"])
+        claim_issues = [
+            issue for issue in result.issues if issue.column == "CLAIM DATE"
+        ]
+        self.assertEqual(1, len(claim_issues))
+        self.assertTrue(
+            any(item.startswith("CLAIM DATE:") for item in result.warnings)
         )
 
     def test_any_missing_required_column_is_pending_and_repairable(self) -> None:

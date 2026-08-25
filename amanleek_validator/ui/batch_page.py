@@ -32,15 +32,15 @@ def render_batch_page(service: BatchComparisonService) -> None:
     )
     render_section_heading(
         "Upload workbooks",
-        f"Select 2–{MAX_BATCH_FILES} Excel .xlsx files for comparison.",
+        f"Select 2–{MAX_BATCH_FILES} .xlsx or UTF-8 .csv files for comparison.",
     )
 
     uploaded_files = st.file_uploader(
         "Choose Excel workbooks",
-        type=["xlsx"],
+        type=["xlsx", "csv"],
         accept_multiple_files=True,
         key="admin_batch_uploads",
-        help=f"Upload up to {MAX_BATCH_FILES} Excel workbooks.",
+        help=f"Upload up to {MAX_BATCH_FILES} XLSX or CSV files.",
     )
     if not uploaded_files:
         render_privacy_note()

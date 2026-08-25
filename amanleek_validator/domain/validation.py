@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from numbers import Number
 from typing import Any, Iterable
 
 import pandas as pd
@@ -10,6 +11,7 @@ from .schema import ValidationSchema
 
 
 MAX_ISSUES_PER_RULE = 100
+CLAIM_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
 def normalize_header(value: Any) -> str:
@@ -18,6 +20,30 @@ def normalize_header(value: Any) -> str:
 
 def blank_mask(series: pd.Series) -> pd.Series:
     return series.isna() | series.astype(str).str.strip().eq("")
+
+
+def parse_mixed_datetime(series: pd.Series) -> pd.Series:
+    """Parse mixed text, native datetime, and Excel-serial date values."""
+    parsed = pd.Series(pd.NaT, index=series.index, dtype="datetime64[ns]")
+    numeric_mask = series.map(
+        lambda value: (
+            isinstance(value, Number)
+            and not isinstance(value, bool)
+            and 1 <= float(value) <= 100_000
+        )
+    )
+    if numeric_mask.any():
+        parsed.loc[numeric_mask] = pd.to_datetime(
+            series.loc[numeric_mask].astype(float),
+            unit="D",
+            origin="1899-12-30",
+            errors="coerce",
+        )
+    remaining = ~numeric_mask
+    parsed.loc[remaining] = pd.to_datetime(
+        series.loc[remaining], errors="coerce", format="mixed"
+    )
+    return parsed.dt.floor("s")
 
 
 def validate_schema(
@@ -147,6 +173,7 @@ def validate_rows(data: pd.DataFrame, schema: ValidationSchema) -> RowValidation
     _check_required_values(cleaned, schema, warnings, issues)
     _check_individual_number(cleaned, warnings, issues)
     _check_birth_year(cleaned, warnings, issues)
+    _standardize_claim_dates(cleaned, warnings, issues)
     _normalize_text_columns(cleaned, schema.text_columns)
     _check_duplicate_key(cleaned, schema.duplicate_key, warnings, issues)
 
@@ -296,6 +323,35 @@ def _check_birth_year(
                 f"Expected a four-digit year, found '{data.at[index, column]}'",
             )
         )
+
+
+def _standardize_claim_dates(
+    data: pd.DataFrame,
+    warnings: list[str],
+    issues: list[ValidationIssue],
+) -> None:
+    column = "CLAIM DATE"
+    if column not in data.columns:
+        return
+    non_blank = ~blank_mask(data[column])
+    parsed = parse_mixed_datetime(data[column])
+    invalid_indexes = data.index[non_blank & parsed.isna()]
+    if len(invalid_indexes):
+        warnings.append(
+            f"{column}: {len(invalid_indexes)} invalid date value(s)."
+        )
+        for index in invalid_indexes[:MAX_ISSUES_PER_RULE]:
+            issues.append(
+                ValidationIssue(
+                    int(index) + 2,
+                    column,
+                    f"Invalid date value '{data.at[index, column]}'",
+                )
+            )
+    valid = non_blank & parsed.notna()
+    data.loc[valid, column] = parsed.loc[valid].dt.strftime(
+        CLAIM_DATETIME_FORMAT
+    )
 
 
 def _normalize_text_columns(data: pd.DataFrame, columns: Iterable[str]) -> None:

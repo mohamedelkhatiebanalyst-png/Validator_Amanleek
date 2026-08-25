@@ -60,7 +60,8 @@
     "DATE OF BIRTH",
     "GENDER",
     "VISA/SOAP#",
-    "PROVIDER"
+    "PROVIDER",
+    "CLAIM DATE"
   ],
   "individual_number_type": "number",
   "birth_year_format": "YYYY"

@@ -26,6 +26,8 @@ amanleek_validator/
 │   └── excel.py
 └── ui/
     ├── batch_page.py
+    ├── batch_validation_page.py
+    ├── csv_converter_page.py
     ├── guide_page.py
     └── single_file_page.py
 ```
@@ -42,6 +44,17 @@ amanleek_validator/
 validation, and Batch check. Guide is the default page and explains both
 workflows with short visual steps. Changing the selected page does not write
 any uploaded or generated content to disk.
+
+The Batch validation page reuses `SingleFileValidationService` for every input,
+so schema, row, duplicate-key, Claim Date, and output rules cannot drift from
+Single-file validation. Each file has its own required Techsheet name. Files
+requiring structural repair are isolated and directed to Single-file validation;
+successful outputs and issue reports are downloadable individually or as ZIPs.
+
+The CSV to XLSX page converts up to 50 UTF-8 CSV files independently. Each
+generated workbook contains one worksheet named `sheet1`; users can download
+individual workbooks or one ZIP archive. Formula-like CSV values are escaped so
+they remain text when the generated workbook is opened.
 
 ## Single-file workflow
 
@@ -85,7 +98,8 @@ uses a four-digit year. Duplicate provisional keys generate a summary warning.
 The Batch check tab is available to every app user and has no separate password
 gate.
 
-1. The user uploads between two and 50 `.xlsx` workbooks.
+1. The user uploads between two and 50 `.xlsx` or UTF-8 `.csv` files. CSV files
+   are treated as a single virtual worksheet named `sheet1`.
 2. The first readable workbook becomes the structural reference.
 3. Every workbook is compared by worksheet name, sequence, column count,
    header spelling, and header order.
@@ -97,7 +111,7 @@ or store the uploaded workbooks.
 
 ## File safety
 
-- Only valid XLSX ZIP archives are accepted.
+- XLSX inputs must be valid ZIP archives; CSV batch inputs must use UTF-8.
 - Compressed size, uncompressed size, member count, and encryption are checked.
 - CSV formula prefixes are escaped to reduce spreadsheet formula injection.
 - Unexpected failures are logged without exposing internal exception details in
