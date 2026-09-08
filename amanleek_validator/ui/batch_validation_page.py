@@ -113,14 +113,24 @@ def _render_results(results: tuple[BatchValidationEntry, ...]) -> None:
                     "Use Single-file validation to review and apply the available "
                     "structural repairs, then include the repaired file in a new batch."
                 )
+            stem = Path(item.file_name).stem
+            if item.validation_report is not None:
+                report_name = f"{stem}_validation_report.xlsx"
+                report_files.append((report_name, item.validation_report))
+                st.download_button(
+                    "Issue report",
+                    item.validation_report,
+                    report_name,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key=f"batch_valid_report_{index}",
+                )
             if item.validated_excel is None or item.validated_csv is None:
                 continue
-            stem = Path(item.file_name).stem
             excel_name = f"{stem}_validated.xlsx"
             csv_name = f"{stem}_validated.csv"
             excel_files.append((excel_name, item.validated_excel))
             csv_files.append((csv_name, item.validated_csv))
-            columns = st.columns(3)
+            columns = st.columns(2)
             columns[0].download_button(
                 "Validated XLSX",
                 item.validated_excel,
@@ -135,20 +145,10 @@ def _render_results(results: tuple[BatchValidationEntry, ...]) -> None:
                 "text/csv",
                 key=f"batch_valid_csv_{index}",
             )
-            if item.validation_report is not None:
-                report_name = f"{stem}_validation_report.xlsx"
-                report_files.append((report_name, item.validation_report))
-                columns[2].download_button(
-                    "Issue report",
-                    item.validation_report,
-                    report_name,
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    key=f"batch_valid_report_{index}",
-                )
 
     if excel_files:
         render_section_heading("Download successful files")
-        downloads = st.columns(3)
+        downloads = st.columns(2)
         downloads[0].download_button(
             "All validated XLSX",
             _zip_files(excel_files),
@@ -162,17 +162,16 @@ def _render_results(results: tuple[BatchValidationEntry, ...]) -> None:
             "validated_csv_files.zip",
             "application/zip",
         )
-        if report_files:
-            downloads[2].download_button(
-                "All issue reports",
-                _zip_files(report_files),
-                "validation_reports.zip",
-                "application/zip",
-            )
+    if report_files:
+        st.download_button(
+            "All issue reports", _zip_files(report_files),
+            "validation_reports.zip", "application/zip",
+        )
+
 
 
 def _signature(items: list[BatchValidationInput]) -> str:
-    digest = sha256()
+    digest = sha256(b"date-validation-v2")
     for item in items:
         digest.update(item.name.encode())
         digest.update(item.content)

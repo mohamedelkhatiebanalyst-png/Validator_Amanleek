@@ -8,6 +8,7 @@ import pandas as pd
 
 from amanleek_validator.application.single_file import SingleFileValidationService
 from amanleek_validator.domain.schema import ValidationSchema
+from amanleek_validator.domain.dates import DATE_COLUMNS
 from amanleek_validator.domain.validation import (
     repairable_missing_columns,
     validate_rows,
@@ -29,7 +30,8 @@ class ValidationTests(unittest.TestCase):
         self.raw_schema, self.schema = load_test_schema()
 
     def test_row_issues_are_limited_to_configured_columns(self) -> None:
-        row = {column: "value" for column in self.schema.approved_columns}
+        row = {column: (None if column in DATE_COLUMNS else "value")
+               for column in self.schema.approved_columns}
         row.update(
             {
                 "INDIVIDUAL#": "123",
@@ -94,7 +96,8 @@ class ValidationTests(unittest.TestCase):
             "August 21, 2026 01:02:03",
             "32/08/2026",
         ):
-            row = {column: "value" for column in self.schema.approved_columns}
+            row = {column: (None if column in DATE_COLUMNS else "value")
+               for column in self.schema.approved_columns}
             row.update({
                 "INDIVIDUAL#": "123",
                 "DATE OF BIRTH": "1990",
@@ -118,7 +121,7 @@ class ValidationTests(unittest.TestCase):
         ]
         self.assertEqual(1, len(claim_issues))
         self.assertTrue(
-            any(item.startswith("CLAIM DATE:") for item in result.warnings)
+            any(item.startswith("CLAIM DATE:") for item in result.errors)
         )
 
     def test_any_missing_required_column_is_pending_and_repairable(self) -> None:

@@ -60,8 +60,15 @@ class OpenpyxlWorkbookAdapter:
             sheet_name=sheet_name,
             dtype=object,
             engine="openpyxl",
+            keep_default_na=False,
+            na_values=[""],
         )
         data.columns = [normalize_header(column) for column in data.columns]
+        workbook = load_workbook(BytesIO(content), read_only=True, data_only=True)
+        try:
+            data.attrs["excel_epoch"] = workbook.epoch
+        finally:
+            workbook.close()
         return data
 
     def write_excel(self, data: pd.DataFrame, sheet_name: str) -> bytes:

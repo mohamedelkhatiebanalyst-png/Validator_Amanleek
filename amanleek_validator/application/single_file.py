@@ -10,6 +10,7 @@ from amanleek_validator.domain.models import (
     WorkbookAssessment,
 )
 from amanleek_validator.domain.schema import ValidationSchema
+from amanleek_validator.domain.dates import DATE_COLUMNS, CLAIM_DATETIME_FORMAT, parse_mixed_datetime
 from amanleek_validator.domain.validation import (
     can_reorder_columns,
     repairable_missing_columns,
@@ -153,6 +154,16 @@ class SingleFileValidationService:
     def _read_normalized(self, content: bytes) -> pd.DataFrame:
         data = self.workbooks.read_sheet(content, self.schema.expected_sheet)
         data.columns = [str(column).strip() for column in data.columns]
+        # Repairs create a new workbook with the default Excel epoch. Convert
+        # recognized dates first so raw 1904-system serials retain their meaning.
+        for column in DATE_COLUMNS:
+            if column in data.columns:
+                epoch = data.attrs.get("excel_epoch")
+                parsed = (parse_mixed_datetime(data[column], epoch) if epoch is not None
+                          else parse_mixed_datetime(data[column]))
+                valid = parsed.notna()
+                data[column] = data[column].astype(object)
+                data.loc[valid, column] = parsed.loc[valid].dt.strftime(CLAIM_DATETIME_FORMAT)
         return data
 
     def _workbook_errors(self, structure: tuple) -> list[str]:

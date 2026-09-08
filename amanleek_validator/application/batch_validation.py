@@ -76,14 +76,18 @@ class BatchValidationService:
                 errors=(str(exc),),
                 warnings=assessment.warnings,
             )
+        issues = issues_dataframe(rows.issues)
         if rows.errors:
             return BatchValidationEntry(
                 item.name,
                 BatchValidationStatus.REJECTED,
                 errors=rows.errors,
                 warnings=(*assessment.warnings, *rows.warnings),
+                validation_report=(self.single_files.validation_report(issues)
+                                   if not issues.empty else None),
+                row_count=len(rows.cleaned_data),
+                issue_count=len(rows.issues),
             )
-        issues = issues_dataframe(rows.issues)
         return BatchValidationEntry(
             item.name,
             BatchValidationStatus.VALIDATED,

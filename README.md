@@ -133,8 +133,23 @@ compared with each other or with canonical single-sheet XLSX workbooks.
   `VISA/SOAP#`, and `PROVIDER`.
 - Checks that `INDIVIDUAL#` is numeric.
 - Checks that `DATE OF BIRTH` is a four-digit year.
-- Validates nonblank `CLAIM DATE` values and standardizes valid dates to
-  `yyyy-MM-dd HH:mm:ss` in validated downloads and row-level reporting.
+- Validates every nonblank value in `CLAIM DATE`, `ADHERENT EFFECTIVE DATE`,
+  `ADHERENT DELETION DATE`, `EXPIRY DATE`, and `DISCHARGE DATE` and normalizes
+  recognized dates to `yyyy-MM-dd HH:mm:ss` in both XLSX and CSV downloads.
+- Uses day/month/year for ambiguous numeric dates: `03/04/2026` becomes
+  `2026-04-03 00:00:00`. Unambiguous month/day inputs such as `08/20/2026`
+  are also accepted. Year-first inputs retain year/month/day order.
+- Accepts native Excel dates, Excel serial numbers (including five/six-digit
+  serial text), compact `yyyyMMdd`, English month names, common date separators,
+  12/24-hour times, and fractional seconds. Missing time becomes `00:00:00`;
+  fractional seconds are discarded. Workbook serials respect the Excel epoch,
+  including during structural repairs.
+- Blocks validated downloads for impossible, incomplete, or unsupported dates,
+  including timezone-bearing inputs. Numeric values outside supported serial or
+  `yyyyMMdd` forms never fall back to Unix timestamps. Blank dates stay blank;
+  the existing blank Claim Date warning remains. `DATE OF BIRTH` stays `YYYY`.
+- Provides a downloadable report for rejected date values, with every affected
+  row and column, original value, and Error severity (no 100-row date-report cap).
 - Reports duplicate rows using `VISA/SOAP# + INDIVIDUAL#`.
 - Produces optional `.xlsx` and CSV validated downloads and a separate `.xlsx`
   validation-report download.
@@ -178,4 +193,7 @@ streamlit run app.py
 
 ## Current behavior
 
-Structural errors reject the entire file. Row-level data problems generate warnings in version 1 and do not remove records. Duplicate claim/member keys are reported only.
+Structural errors and invalid nonblank full-date values reject the entire file.
+Other row-level rules retain their existing warning behavior. Duplicate
+claim/member keys are reported only. Rejected date files have issue-report
+downloads, but no validated XLSX or CSV downloads.

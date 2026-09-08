@@ -7,6 +7,7 @@ import pandas as pd
 
 
 class Severity(StrEnum):
+    ERROR = "Error"
     WARNING = "Warning"
 
 

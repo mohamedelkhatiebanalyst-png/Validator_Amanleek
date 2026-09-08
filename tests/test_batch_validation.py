@@ -13,6 +13,7 @@ from amanleek_validator.application.batch_validation import (
 )
 from amanleek_validator.application.single_file import SingleFileValidationService
 from amanleek_validator.domain.schema import ValidationSchema
+from amanleek_validator.domain.dates import DATE_COLUMNS
 from amanleek_validator.infrastructure.excel import OpenpyxlWorkbookAdapter
 
 
@@ -30,7 +31,8 @@ class BatchValidationTests(unittest.TestCase):
         self.service = BatchValidationService(single)
 
     def workbook(self) -> bytes:
-        row = {column: "value" for column in self.schema.approved_columns}
+        row = {column: (None if column in DATE_COLUMNS else "value")
+               for column in self.schema.approved_columns}
         row.update({
             "INDIVIDUAL#": "123",
             "DATE OF BIRTH": "1990",

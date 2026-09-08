@@ -99,6 +99,7 @@ def render_single_file_page(service: SingleFileValidationService) -> None:
     if row_result.errors:
         _render_rejected(row_result.errors)
         _render_warnings((*assessment.warnings, *row_result.warnings))
+        _render_issue_report(service, uploaded_file.name, row_result)
         return
 
     _render_validated(service, uploaded_file.name, assessment, row_result)
@@ -255,16 +256,7 @@ def _render_validated(
     _render_warnings((*assessment.warnings, *row_result.warnings))
     _render_schema(service)
 
-    issues = issues_dataframe(row_result.issues)
-    if not issues.empty:
-        st.subheader("Row-level issues")
-        st.dataframe(issues, width="stretch", hide_index=True)
-        st.download_button(
-            "Download validation report",
-            data=service.validation_report(issues),
-            file_name=f"{Path(uploaded_name).stem}_validation_report.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
+    _render_issue_report(service, uploaded_name, row_result)
 
     base_name = Path(uploaded_name).stem
     validated_excel = service.validated_excel(row_result.cleaned_data)
@@ -291,6 +283,20 @@ def _render_validated(
         "Files are generated in memory and are saved only when you click a "
         "download button."
     )
+
+
+def _render_issue_report(service: SingleFileValidationService, uploaded_name: str,
+                         row_result: RowValidation) -> None:
+    issues = issues_dataframe(row_result.issues)
+    if not issues.empty:
+        st.subheader("Row-level issues")
+        st.dataframe(issues, width="stretch", hide_index=True)
+        st.download_button(
+            "Download validation report",
+            data=service.validation_report(issues),
+            file_name=f"{Path(uploaded_name).stem}_validation_report.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 
 
 def _render_warnings(warnings: tuple[str, ...]) -> None:
